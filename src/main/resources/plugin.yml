@@ -1,0 +1,44 @@
+name: ReportAdmin
+version: '1.3.0'
+main: net.nightrix.reportadmin.ReportAdminPlugin
+api-version: '1.21'
+author: Nightrix
+description: Serverside player-report and admin-request system with dialog menus.
+
+commands:
+  flag:
+    description: Flag (report) a player.
+    usage: /flag
+    permission: reportadmin.report
+  myreports:
+    description: View and manage the reports you have submitted.
+    usage: /myreports
+    permission: reportadmin.report
+  reportlist:
+    description: View and manage every player report (staff).
+    usage: /reportlist
+    aliases: [reports]
+    permission: reportadmin.staff
+  requestadmin:
+    description: Request a staff member's attention.
+    usage: /requestadmin
+    permission: reportadmin.request
+  myadminrequests:
+    description: View and manage the admin requests you have submitted.
+    usage: /myadminrequests
+    permission: reportadmin.request
+  adminrequests:
+    description: View pending admin requests from online players (staff).
+    usage: /adminrequests
+    permission: reportadmin.staff
+
+permissions:
+  reportadmin.report:
+    description: Allows use of /flag and /myreports.
+    default: true
+  reportadmin.request:
+    description: Allows use of /requestadmin and /myadminrequests.
+    default: true
+  reportadmin.staff:
+    description: Allows use of /reportlist (alias /reports) and /adminrequests.
+    default: op
