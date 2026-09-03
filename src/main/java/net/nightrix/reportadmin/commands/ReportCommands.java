@@ -123,7 +123,7 @@ public class ReportCommands implements CommandExecutor {
                         reportManager.save();
                         p.sendMessage(DialogUtil.success("Report #" + editing.getId() + " updated."));
                     }
-                }), DialogUtil.singleUse())
+                }, DialogUtil.singleUse()))
                 .build();
 
         ActionButton cancel = ActionButton.builder(Component.text("Cancel", NamedTextColor.RED))
