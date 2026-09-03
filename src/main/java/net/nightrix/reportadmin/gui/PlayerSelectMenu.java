@@ -233,7 +233,7 @@ public class PlayerSelectMenu implements Listener {
                     session.search = (query == null || query.isBlank()) ? null : query.trim();
                     session.page = 0;
                     render(p, session);
-                }), DialogUtil.singleUse())
+                }, DialogUtil.singleUse()))
                 .build();
 
         ActionButton cancel = ActionButton.builder(Component.text("Back", NamedTextColor.RED))
