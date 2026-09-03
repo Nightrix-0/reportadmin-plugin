@@ -79,7 +79,7 @@ public class AdminRequestCommands implements CommandExecutor {
                         requestManager.save();
                         p.sendMessage(DialogUtil.success("Admin request #" + editing.getId() + " updated."));
                     }
-                }), DialogUtil.singleUse())
+                }, DialogUtil.singleUse()))
                 .build();
 
         ActionButton cancel = ActionButton.builder(Component.text("Cancel", NamedTextColor.RED))
