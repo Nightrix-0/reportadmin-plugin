@@ -1,5 +1,5 @@
 name: ReportAdmin
-version: '1.3.0'
+version: '1.4.0'
 main: net.nightrix.reportadmin.ReportAdminPlugin
 api-version: '1.21'
 author: Nightrix
@@ -31,6 +31,10 @@ commands:
     description: View pending admin requests from online players (staff).
     usage: /adminrequests
     permission: reportadmin.staff
+  ralogs:
+    description: View the archive of closed reports and admin requests (staff).
+    usage: /ralogs
+    permission: reportadmin.logs
 
 permissions:
   reportadmin.report:
@@ -41,4 +45,9 @@ permissions:
     default: true
   reportadmin.staff:
     description: Allows use of /reportlist (alias /reports) and /adminrequests.
+    default: op
+  reportadmin.logs:
+    description: Allows use of /ralogs to view closed report/request history. Grant this node
+      through LuckPerms (or any permission plugin) to let non-op staff see it too - it defaults
+      to op, same as reportadmin.staff, but is a separate node so it can be handed out on its own.
     default: op
