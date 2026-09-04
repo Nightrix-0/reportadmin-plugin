@@ -69,6 +69,15 @@ public class AdminRequestManager {
         save();
     }
 
+    /** Pulls a request out of the active list entirely - used once it's been logged to /ralogs. */
+    public synchronized boolean remove(int id) {
+        boolean removed = requests.removeIf(r -> r.getId() == id);
+        if (removed) {
+            save();
+        }
+        return removed;
+    }
+
     private void load() {
         if (!file.exists()) {
             return;
