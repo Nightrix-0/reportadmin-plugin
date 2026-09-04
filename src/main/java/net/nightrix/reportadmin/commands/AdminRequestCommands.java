@@ -10,10 +10,13 @@ import io.papermc.paper.registry.data.dialog.type.DialogType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.nightrix.reportadmin.model.AdminRequest;
+import net.nightrix.reportadmin.model.TicketLog;
 import net.nightrix.reportadmin.storage.AdminRequestManager;
+import net.nightrix.reportadmin.storage.TicketLogManager;
 import net.nightrix.reportadmin.util.DialogUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -30,9 +33,11 @@ import java.util.List;
 public class AdminRequestCommands implements CommandExecutor {
 
     private final AdminRequestManager requestManager;
+    private final TicketLogManager ticketLogManager;
 
-    public AdminRequestCommands(AdminRequestManager requestManager) {
+    public AdminRequestCommands(AdminRequestManager requestManager, TicketLogManager ticketLogManager) {
         this.requestManager = requestManager;
+        this.ticketLogManager = ticketLogManager;
     }
 
     @Override
@@ -153,9 +158,8 @@ public class AdminRequestCommands implements CommandExecutor {
             buttons.add(ActionButton.builder(Component.text("Cancel Request", NamedTextColor.RED))
                     .action(DialogAction.customClick((view, audience) -> {
                         if (audience instanceof Player p) {
-                            request.setStatus(AdminRequest.Status.CANCELLED);
-                            requestManager.save();
-                            p.sendMessage(DialogUtil.success("Admin request #" + request.getId() + " cancelled."));
+                            closeRequest(request, "CANCELLED", p);
+                            p.sendMessage(DialogUtil.success("Admin request #" + request.getId() + " cancelled and moved to the logs."));
                             openOwnList(p);
                         }
                     }, DialogUtil.singleUse()))
@@ -232,9 +236,8 @@ public class AdminRequestCommands implements CommandExecutor {
         buttons.add(ActionButton.builder(Component.text("Close Request", NamedTextColor.RED))
                 .action(DialogAction.customClick((view, audience) -> {
                     if (audience instanceof Player p) {
-                        request.setStatus(AdminRequest.Status.CLOSED);
-                        requestManager.save();
-                        p.sendMessage(DialogUtil.success("Admin request #" + request.getId() + " closed."));
+                        closeRequest(request, "CLOSED", p);
+                        p.sendMessage(DialogUtil.success("Admin request #" + request.getId() + " closed and moved to the logs."));
                         openStaffList(p);
                     }
                 }, DialogUtil.singleUse()))
@@ -255,10 +258,19 @@ public class AdminRequestCommands implements CommandExecutor {
         staff.showDialog(dialog);
     }
 
+    /** Logs the request to /ralogs and pulls it out of the active list. finalStatus is "CLOSED" or "CANCELLED". */
+    private void closeRequest(AdminRequest request, String finalStatus, Player closedBy) {
+        request.setStatus("CANCELLED".equals(finalStatus) ? AdminRequest.Status.CANCELLED : AdminRequest.Status.CLOSED);
+        ticketLogManager.add(TicketLog.Type.ADMIN_REQUEST, request.getId(), request.getPlayerName(), null,
+                request.getReason(), null, finalStatus, closedBy.getName(), request.getCreatedAt());
+        requestManager.remove(request.getId());
+    }
+
     private void notifyStaff(Component message) {
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (p.hasPermission("reportadmin.staff")) {
                 p.sendMessage(message);
+                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1f, 1.4f);
             }
         }
     }
