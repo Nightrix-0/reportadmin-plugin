@@ -11,9 +11,12 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.nightrix.reportadmin.gui.PlayerSelectMenu;
 import net.nightrix.reportadmin.model.Report;
+import net.nightrix.reportadmin.model.TicketLog;
 import net.nightrix.reportadmin.storage.ReportManager;
+import net.nightrix.reportadmin.storage.TicketLogManager;
 import net.nightrix.reportadmin.util.DialogUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -35,10 +38,12 @@ public class ReportCommands implements CommandExecutor {
 
     private final ReportManager reportManager;
     private final PlayerSelectMenu playerSelectMenu;
+    private final TicketLogManager ticketLogManager;
 
-    public ReportCommands(ReportManager reportManager, PlayerSelectMenu playerSelectMenu) {
+    public ReportCommands(ReportManager reportManager, PlayerSelectMenu playerSelectMenu, TicketLogManager ticketLogManager) {
         this.reportManager = reportManager;
         this.playerSelectMenu = playerSelectMenu;
+        this.ticketLogManager = ticketLogManager;
     }
 
     @Override
@@ -220,9 +225,8 @@ public class ReportCommands implements CommandExecutor {
                 buttons.add(ActionButton.builder(Component.text("Close Report", NamedTextColor.RED))
                         .action(DialogAction.customClick((view, audience) -> {
                             if (audience instanceof Player p) {
-                                report.setStatus(Report.Status.CLOSED);
-                                reportManager.save();
-                                p.sendMessage(DialogUtil.success("Report #" + report.getId() + " closed."));
+                                closeReport(report, p);
+                                p.sendMessage(DialogUtil.success("Report #" + report.getId() + " closed and moved to the logs."));
                                 openList(p, true);
                             }
                         }, DialogUtil.singleUse()))
@@ -233,9 +237,8 @@ public class ReportCommands implements CommandExecutor {
                     .tooltip(Component.text("Mark this report as resolved."))
                     .action(DialogAction.customClick((view, audience) -> {
                         if (audience instanceof Player p) {
-                            report.setStatus(Report.Status.CLOSED);
-                            reportManager.save();
-                            p.sendMessage(DialogUtil.success("Report #" + report.getId() + " closed."));
+                            closeReport(report, p);
+                            p.sendMessage(DialogUtil.success("Report #" + report.getId() + " closed and moved to the logs."));
                             openList(p, false);
                         }
                     }, DialogUtil.singleUse()))
@@ -257,10 +260,19 @@ public class ReportCommands implements CommandExecutor {
         viewer.showDialog(dialog);
     }
 
+    /** Logs the report to /ralogs and pulls it out of the active list. */
+    private void closeReport(Report report, Player closedBy) {
+        report.setStatus(Report.Status.CLOSED);
+        ticketLogManager.add(TicketLog.Type.REPORT, report.getId(), report.getReporterName(), report.getTargetName(),
+                report.getReason(), report.getEvidence(), "CLOSED", closedBy.getName(), report.getCreatedAt());
+        reportManager.remove(report.getId());
+    }
+
     private void notifyStaff(Component message) {
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (p.hasPermission("reportadmin.staff")) {
                 p.sendMessage(message);
+                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1f, 1.4f);
             }
         }
     }
