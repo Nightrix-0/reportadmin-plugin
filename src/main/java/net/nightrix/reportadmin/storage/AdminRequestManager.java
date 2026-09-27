@@ -56,6 +56,18 @@ public class AdminRequestManager {
                 .collect(Collectors.toList());
     }
 
+    /** The open request from a specific currently-online player, matched by name
+     *  (case-insensitive) - backs "/requests view &lt;player&gt;". Null if that player has no
+     *  open request (or isn't online). */
+    public synchronized AdminRequest getOpenByPlayerName(String playerName) {
+        for (AdminRequest r : getOpenFromOnlinePlayers()) {
+            if (r.getPlayerName().equalsIgnoreCase(playerName)) {
+                return r;
+            }
+        }
+        return null;
+    }
+
     public synchronized AdminRequest getById(int id) {
         for (AdminRequest r : requests) {
             if (r.getId() == id) {
