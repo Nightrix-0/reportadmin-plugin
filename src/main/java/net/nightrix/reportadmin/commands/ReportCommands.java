@@ -13,8 +13,10 @@ import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.nightrix.reportadmin.gui.PlayerSelectMenu;
+import net.nightrix.reportadmin.model.AdminRequest;
 import net.nightrix.reportadmin.model.Report;
 import net.nightrix.reportadmin.model.TicketLog;
+import net.nightrix.reportadmin.storage.AdminRequestManager;
 import net.nightrix.reportadmin.storage.ReportManager;
 import net.nightrix.reportadmin.storage.TicketLogManager;
 import net.nightrix.reportadmin.util.DialogUtil;
@@ -52,11 +54,14 @@ public class ReportCommands implements CommandExecutor {
     private final ReportManager reportManager;
     private final PlayerSelectMenu playerSelectMenu;
     private final TicketLogManager ticketLogManager;
+    private final AdminRequestManager adminRequestManager;
 
-    public ReportCommands(ReportManager reportManager, PlayerSelectMenu playerSelectMenu, TicketLogManager ticketLogManager) {
+    public ReportCommands(ReportManager reportManager, PlayerSelectMenu playerSelectMenu, TicketLogManager ticketLogManager,
+                           AdminRequestManager adminRequestManager) {
         this.reportManager = reportManager;
         this.playerSelectMenu = playerSelectMenu;
         this.ticketLogManager = ticketLogManager;
+        this.adminRequestManager = adminRequestManager;
     }
 
     @Override
@@ -97,7 +102,41 @@ public class ReportCommands implements CommandExecutor {
             return;
         }
 
-        openCreateFlow(player);
+        openReportMenu(player);
+    }
+
+    /** Bare "/report" - shows what you can do next instead of jumping straight into the picker. */
+    private void openReportMenu(Player player) {
+        List<ActionButton> buttons = new ArrayList<>();
+        buttons.add(ActionButton.builder(Component.text("Report a Player", NamedTextColor.YELLOW))
+                .tooltip(Component.text("/report <player> - or pick one from a list."))
+                .action(DialogAction.customClick((view, audience) -> {
+                    if (audience instanceof Player p) {
+                        openCreateFlow(p);
+                    }
+                }, DialogUtil.singleUse()))
+                .build());
+        if (player.hasPermission("reportadmin.logs")) {
+            buttons.add(ActionButton.builder(Component.text("View Report Logs", NamedTextColor.AQUA))
+                    .tooltip(Component.text("/report logs [player] - browse the closed-ticket archive."))
+                    .action(DialogAction.customClick((view, audience) -> {
+                        if (audience instanceof Player p) {
+                            openLogsList(p, null);
+                        }
+                    }, DialogUtil.singleUse()))
+                    .build());
+        }
+
+        ActionButton close = ActionButton.builder(Component.text("Close")).action(null).build();
+
+        Dialog dialog = Dialog.create(builder -> builder.empty()
+                .base(DialogBase.builder(Component.text("Report Commands"))
+                        .body(List.of(DialogBody.plainMessage(
+                                Component.text("Choose what you'd like to do.", NamedTextColor.GRAY))))
+                        .build())
+                .type(DialogType.multiAction(buttons, close, 1)));
+
+        player.showDialog(dialog);
     }
 
     private void handleReports(Player player, String[] args) {
@@ -364,8 +403,9 @@ public class ReportCommands implements CommandExecutor {
     /** Logs the report to /report logs and pulls it out of the active list. */
     private void closeReport(Report report, Player closedBy) {
         report.setStatus(Report.Status.CLOSED);
-        ticketLogManager.add(TicketLog.Type.REPORT, report.getId(), report.getReporterName(), report.getTargetName(),
-                report.getReason(), report.getEvidence(), "CLOSED", closedBy.getName(), report.getCreatedAt());
+        ticketLogManager.add(TicketLog.Type.REPORT, report.getId(), report.getReporterId(), report.getReporterName(),
+                report.getTargetName(), report.getReason(), report.getEvidence(), "CLOSED", closedBy.getName(),
+                report.getCreatedAt());
         reportManager.remove(report.getId());
     }
 
@@ -427,7 +467,26 @@ public class ReportCommands implements CommandExecutor {
         body.add(DialogBody.plainMessage(Component.text("Filed: " + DialogUtil.formatDate(entry.getCreatedAt()), NamedTextColor.GRAY)));
         body.add(DialogBody.plainMessage(Component.text("Closed: " + DialogUtil.formatDate(entry.getClosedAt()), NamedTextColor.GRAY)));
 
+        List<ActionButton> buttons = new ArrayList<>();
+        buttons.add(ActionButton.builder(Component.text("Reopen", NamedTextColor.GREEN))
+                .tooltip(Component.text("Restore this back into the active queue."))
+                .action(DialogAction.customClick((view, audience) -> {
+                    if (audience instanceof Player p) {
+                        reopenLogEntry(p, entry, filterName);
+                    }
+                }, DialogUtil.singleUse()))
+                .build());
+        buttons.add(ActionButton.builder(Component.text("Delete Permanently", NamedTextColor.RED))
+                .tooltip(Component.text("Remove this log entry for good. This cannot be undone."))
+                .action(DialogAction.customClick((view, audience) -> {
+                    if (audience instanceof Player p) {
+                        confirmDeleteLogEntry(p, entry, filterName);
+                    }
+                }, DialogUtil.singleUse()))
+                .build());
+
         ActionButton back = ActionButton.builder(Component.text("Back"))
+                .tooltip(Component.text("Just close this - keeps the entry in the logs."))
                 .action(DialogAction.customClick((view, audience) -> {
                     if (audience instanceof Player p) {
                         openLogsList(p, filterName);
@@ -437,9 +496,56 @@ public class ReportCommands implements CommandExecutor {
 
         Dialog dialog = Dialog.create(builder -> builder.empty()
                 .base(DialogBase.builder(Component.text("Log Entry #" + entry.getId())).body(body).build())
-                .type(DialogType.multiAction(List.of(), back, 1)));
+                .type(DialogType.multiAction(buttons, back, 2)));
 
         viewer.showDialog(dialog);
+    }
+
+    /** Restores a log entry back into the active {@link ReportManager}/{@link AdminRequestManager}
+     *  queue (as a brand new id) and removes it from the archive. */
+    private void reopenLogEntry(Player staff, TicketLog entry, String filterName) {
+        if (entry.getType() == TicketLog.Type.REPORT) {
+            Report report = reportManager.create(entry.getSubmitterId(), entry.getSubmitterName(),
+                    entry.getTargetName(), entry.getReason(), entry.getEvidence());
+            staff.sendMessage(DialogUtil.success("Report #" + report.getId() + " reopened from the logs."));
+        } else {
+            AdminRequest request = adminRequestManager.create(entry.getSubmitterId(), entry.getSubmitterName(), entry.getReason());
+            staff.sendMessage(DialogUtil.success("Admin request #" + request.getId() + " reopened from the logs."));
+        }
+        ticketLogManager.remove(entry.getId());
+        openLogsList(staff, filterName);
+    }
+
+    /** A confirmation step before permanently deleting a log entry - this can't be undone, unlike
+     *  everything else in this menu system, so it gets its own "are you sure" screen. */
+    private void confirmDeleteLogEntry(Player staff, TicketLog entry, String filterName) {
+        ActionButton confirm = ActionButton.builder(Component.text("Yes, Delete", NamedTextColor.RED))
+                .action(DialogAction.customClick((view, audience) -> {
+                    if (audience instanceof Player p) {
+                        ticketLogManager.remove(entry.getId());
+                        p.sendMessage(DialogUtil.success("Log entry #" + entry.getId() + " deleted permanently."));
+                        openLogsList(p, filterName);
+                    }
+                }, DialogUtil.singleUse()))
+                .build();
+
+        ActionButton cancel = ActionButton.builder(Component.text("Cancel"))
+                .action(DialogAction.customClick((view, audience) -> {
+                    if (audience instanceof Player p) {
+                        openLogsDetail(p, entry, filterName);
+                    }
+                }, DialogUtil.singleUse()))
+                .build();
+
+        Dialog dialog = Dialog.create(builder -> builder.empty()
+                .base(DialogBase.builder(Component.text("Delete Log Entry #" + entry.getId()))
+                        .body(List.of(DialogBody.plainMessage(
+                                Component.text("This permanently removes the entry from the logs. This cannot be undone.",
+                                        NamedTextColor.RED))))
+                        .build())
+                .type(DialogType.confirmation(confirm, cancel)));
+
+        staff.showDialog(dialog);
     }
 
     // ---------------------------------------------------------------- shared bits
