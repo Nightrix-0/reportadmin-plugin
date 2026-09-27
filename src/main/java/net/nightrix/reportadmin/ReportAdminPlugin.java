@@ -1,7 +1,6 @@
 package net.nightrix.reportadmin;
 
 import net.nightrix.reportadmin.commands.AdminRequestCommands;
-import net.nightrix.reportadmin.commands.LogsCommand;
 import net.nightrix.reportadmin.commands.ReportCommands;
 import net.nightrix.reportadmin.gui.PlayerSelectMenu;
 import net.nightrix.reportadmin.storage.AdminRequestManager;
@@ -30,20 +29,15 @@ public class ReportAdminPlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(playerSelectMenu, this);
 
         ReportCommands reportCommands = new ReportCommands(reportManager, playerSelectMenu, ticketLogManager);
-        getCommand("flag").setExecutor(reportCommands);
-        getCommand("myreports").setExecutor(reportCommands);
-        getCommand("reportlist").setExecutor(reportCommands);
+        getCommand("report").setExecutor(reportCommands);
+        getCommand("reports").setExecutor(reportCommands);
 
         AdminRequestCommands adminRequestCommands = new AdminRequestCommands(adminRequestManager, ticketLogManager);
-        getCommand("requestadmin").setExecutor(adminRequestCommands);
-        getCommand("myadminrequests").setExecutor(adminRequestCommands);
-        getCommand("adminrequests").setExecutor(adminRequestCommands);
+        getCommand("request").setExecutor(adminRequestCommands);
+        getCommand("requests").setExecutor(adminRequestCommands);
 
-        LogsCommand logsCommand = new LogsCommand(ticketLogManager);
-        getCommand("ralogs").setExecutor(logsCommand);
-
-        getLogger().info("ReportAdmin enabled: /flag, /myreports, /reportlist (alias /reports), "
-                + "/requestadmin, /myadminrequests, /adminrequests, /ralogs");
+        getLogger().info("ReportAdmin enabled: /report [player], /report logs [player], "
+                + "/reports [player], /reports view [player], /request staff, /requests, /requests view [player]");
     }
 
     @Override
