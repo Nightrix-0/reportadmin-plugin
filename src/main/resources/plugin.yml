@@ -1,53 +1,41 @@
 name: ReportAdmin
-version: '1.4.0'
+version: '1.5.0'
 main: net.nightrix.reportadmin.ReportAdminPlugin
 api-version: '1.21'
 author: Nightrix
 description: Serverside player-report and admin-request system with dialog menus.
 
 commands:
-  flag:
-    description: Flag (report) a player.
-    usage: /flag
+  report:
+    description: Report a player, or view/browse the closed-ticket logs (staff).
+    usage: "/report [player] - open a report against [player] (or pick one if omitted). /report logs [player] - staff: browse the archive, optionally filtered to a player."
     permission: reportadmin.report
-  myreports:
-    description: View and manage the reports you have submitted.
-    usage: /myreports
+  reports:
+    description: View your own reports, or every report (staff).
+    usage: "/reports [player] - your own reports, optionally filtered to a target. /reports view [player] - staff: every report, optionally filtered to a target."
     permission: reportadmin.report
-  reportlist:
-    description: View and manage every player report (staff).
-    usage: /reportlist
-    aliases: [reports]
-    permission: reportadmin.staff
-  requestadmin:
+  request:
     description: Request a staff member's attention.
-    usage: /requestadmin
+    usage: /request staff
     permission: reportadmin.request
-  myadminrequests:
-    description: View and manage the admin requests you have submitted.
-    usage: /myadminrequests
+  requests:
+    description: View your own admin requests, or open requests from online players (staff).
+    usage: "/requests - your own admin requests. /requests view [player] - staff: open requests from online players, optionally jumping straight to one."
     permission: reportadmin.request
-  adminrequests:
-    description: View pending admin requests from online players (staff).
-    usage: /adminrequests
-    permission: reportadmin.staff
-  ralogs:
-    description: View the archive of closed reports and admin requests (staff).
-    usage: /ralogs
-    permission: reportadmin.logs
 
 permissions:
   reportadmin.report:
-    description: Allows use of /flag and /myreports.
+    description: Allows use of /report and /reports (your own reports).
     default: true
   reportadmin.request:
-    description: Allows use of /requestadmin and /myadminrequests.
+    description: Allows use of /request and /requests (your own admin requests).
     default: true
   reportadmin.staff:
-    description: Allows use of /reportlist (alias /reports) and /adminrequests.
+    description: Allows use of the staff-only subcommands "/reports view" and "/requests view".
     default: op
   reportadmin.logs:
-    description: Allows use of /ralogs to view closed report/request history. Grant this node
-      through LuckPerms (or any permission plugin) to let non-op staff see it too - it defaults
-      to op, same as reportadmin.staff, but is a separate node so it can be handed out on its own.
+    description: Allows use of "/report logs" to view closed report/request history. Grant this
+      node through LuckPerms (or any permission plugin) to let non-op staff see it too - it
+      defaults to op, same as reportadmin.staff, but is a separate node so it can be handed out
+      on its own.
     default: op
