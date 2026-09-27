@@ -69,7 +69,8 @@ public class AdminRequestCommands implements CommandExecutor {
         }
     }
 
-    /** "/requests" (own requests) or "/requests view [player]" (staff). */
+    /** "/requests" (menu), "/requests &lt;anything else&gt;" (own requests), or
+     *  "/requests view [player]" (staff). */
     private void handleRequests(Player player, String[] args) {
         if (args.length >= 1 && args[0].equalsIgnoreCase("view")) {
             if (!player.hasPermission("reportadmin.staff")) {
@@ -87,9 +88,49 @@ public class AdminRequestCommands implements CommandExecutor {
             } else {
                 openStaffList(player);
             }
-        } else {
-            openOwnList(player);
+            return;
         }
+
+        if (args.length == 0) {
+            openRequestsMenu(player);
+            return;
+        }
+
+        openOwnList(player);
+    }
+
+    /** Bare "/requests" - shows what you can do next instead of jumping straight into a list. */
+    private void openRequestsMenu(Player player) {
+        List<ActionButton> buttons = new ArrayList<>();
+        buttons.add(ActionButton.builder(Component.text("My Admin Requests", NamedTextColor.YELLOW))
+                .tooltip(Component.text("/requests - view and manage the requests you've sent."))
+                .action(DialogAction.customClick((view, audience) -> {
+                    if (audience instanceof Player p) {
+                        openOwnList(p);
+                    }
+                }, DialogUtil.singleUse()))
+                .build());
+        if (player.hasPermission("reportadmin.staff")) {
+            buttons.add(ActionButton.builder(Component.text("View All Requests", NamedTextColor.AQUA))
+                    .tooltip(Component.text("/requests view [player] - open requests from online players."))
+                    .action(DialogAction.customClick((view, audience) -> {
+                        if (audience instanceof Player p) {
+                            openStaffList(p);
+                        }
+                    }, DialogUtil.singleUse()))
+                    .build());
+        }
+
+        ActionButton close = ActionButton.builder(Component.text("Close")).action(null).build();
+
+        Dialog dialog = Dialog.create(builder -> builder.empty()
+                .base(DialogBase.builder(Component.text("Requests Commands"))
+                        .body(List.of(DialogBody.plainMessage(
+                                Component.text("Choose what you'd like to do.", NamedTextColor.GRAY))))
+                        .build())
+                .type(DialogType.multiAction(buttons, close, 1)));
+
+        player.showDialog(dialog);
     }
 
     // ---------------------------------------------------------------- create / edit form
@@ -295,8 +336,8 @@ public class AdminRequestCommands implements CommandExecutor {
     /** Logs the request to /ralogs and pulls it out of the active list. finalStatus is "CLOSED" or "CANCELLED". */
     private void closeRequest(AdminRequest request, String finalStatus, Player closedBy) {
         request.setStatus("CANCELLED".equals(finalStatus) ? AdminRequest.Status.CANCELLED : AdminRequest.Status.CLOSED);
-        ticketLogManager.add(TicketLog.Type.ADMIN_REQUEST, request.getId(), request.getPlayerName(), null,
-                request.getReason(), null, finalStatus, closedBy.getName(), request.getCreatedAt());
+        ticketLogManager.add(TicketLog.Type.ADMIN_REQUEST, request.getId(), request.getPlayerId(), request.getPlayerName(),
+                null, request.getReason(), null, finalStatus, closedBy.getName(), request.getCreatedAt());
         requestManager.remove(request.getId());
     }
 
