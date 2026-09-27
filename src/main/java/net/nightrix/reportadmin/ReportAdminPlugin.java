@@ -28,7 +28,7 @@ public class ReportAdminPlugin extends JavaPlugin {
         PlayerSelectMenu playerSelectMenu = new PlayerSelectMenu(this);
         Bukkit.getPluginManager().registerEvents(playerSelectMenu, this);
 
-        ReportCommands reportCommands = new ReportCommands(reportManager, playerSelectMenu, ticketLogManager);
+        ReportCommands reportCommands = new ReportCommands(reportManager, playerSelectMenu, ticketLogManager, adminRequestManager);
         getCommand("report").setExecutor(reportCommands);
         getCommand("reports").setExecutor(reportCommands);
 
