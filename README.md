@@ -9,11 +9,11 @@ A serverside-only Paper plugin that adds an in-game player-report and admin-requ
 
 ## Features
 
-- **Player reports** (`/report`) — with no player given, pick a target from a searchable, browsable head-grid menu (toggle between online players and everyone); give a player name (`/report Steve`) to skip straight to the form. Submit a reason and an evidence link — evidence is required, the form won't submit without it.
+- **Player reports** (`/report`) — with no player given, shows a quick menu of what you can do next (report a player, and — for staff — view the logs); give a player name (`/report Steve`) to skip straight to the form. Submit a reason and an evidence link — evidence is required, the form won't submit without it.
 - **Admin requests** (`/request staff`) — a simple reason-only form that pings online staff.
-- Players can review, edit, or close/cancel their own reports and requests: `/reports` (optionally `/reports <player>` to filter to reports you've filed against one player) and `/requests`.
+- Players can review, edit, or close/cancel their own reports and requests: `/reports` (optionally `/reports <player>` to filter to reports you've filed against one player) and `/requests` (bare, this also shows a quick menu of what you can do next).
 - Staff can browse the full report queue with `/reports view` (optionally `/reports view <player>` for every report against one player), see open admin requests from players who are currently online and teleport straight to them with `/requests view` (optionally `/requests view <player>` to jump straight to one), and close either out. When staff view a report, the evidence link is clickable and copies straight to their clipboard.
-- **Ticket logging** — once a report or request is closed (or an admin request is cancelled by its own author), it's pulled out of the active queue and archived rather than deleted. `/report logs` browses that archive (most recent 50), showing who filed it, who closed it, and when — add a player name (`/report logs Steve`) to filter to just that player's history.
+- **Ticket logging** — once a report or request is closed (or an admin request is cancelled by its own author), it's pulled out of the active queue and archived rather than deleted. `/report logs` browses that archive (most recent 50), showing who filed it, who closed it, and when — add a player name (`/report logs Steve`) to filter to just that player's history. From a log entry, staff can just close it and leave it archived, **reopen** it back into the active queue, or **permanently delete** it (with a confirmation step first, since that one can't be undone) — the evidence link stays copyable to clipboard throughout.
 - **Staff notifications** — filing a report or an admin request pings every online staff member in chat and plays a notification sound.
 
 ## Commands & permissions
