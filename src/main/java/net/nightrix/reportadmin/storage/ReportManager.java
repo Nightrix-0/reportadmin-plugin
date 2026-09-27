@@ -53,6 +53,25 @@ public class ReportManager {
                 .collect(Collectors.toList());
     }
 
+    /** A single reporter's own reports, filtered to a specific target player - backs
+     *  "/reports &lt;player&gt;". */
+    public synchronized List<Report> getByReporterAndTarget(UUID reporterId, String targetName) {
+        return reports.stream()
+                .filter(r -> r.getReporterId().equals(reporterId))
+                .filter(r -> r.getTargetName().equalsIgnoreCase(targetName))
+                .sorted(Comparator.comparingLong(Report::getCreatedAt).reversed())
+                .collect(Collectors.toList());
+    }
+
+    /** Every report against a specific target player, regardless of who filed it - backs
+     *  "/reports view &lt;player&gt;" (staff). */
+    public synchronized List<Report> getByTarget(String targetName) {
+        return reports.stream()
+                .filter(r -> r.getTargetName().equalsIgnoreCase(targetName))
+                .sorted(Comparator.comparingLong(Report::getCreatedAt).reversed())
+                .collect(Collectors.toList());
+    }
+
     public synchronized Report getById(int id) {
         for (Report r : reports) {
             if (r.getId() == id) {
