@@ -26,9 +26,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Handles /requestadmin, /myadminrequests and /adminrequests.
+ * Handles /request (staff) and /requests ([player] | view [player]).
  *
- * /adminrequests only ever lists OPEN requests whose author is currently online, per spec.
+ * "/requests view" (no player) only ever lists OPEN requests whose author is currently online,
+ * per spec. "/requests view &lt;player&gt;" jumps straight to that online player's open request.
  */
 public class AdminRequestCommands implements CommandExecutor {
 
@@ -48,14 +49,47 @@ public class AdminRequestCommands implements CommandExecutor {
         }
 
         switch (command.getName().toLowerCase()) {
-            case "requestadmin" -> showForm(player, "Request Admin Assistance", null, null);
-            case "myadminrequests" -> openOwnList(player);
-            case "adminrequests" -> openStaffList(player);
+            case "request" -> handleRequest(player, args);
+            case "requests" -> handleRequests(player, args);
             default -> {
                 return false;
             }
         }
         return true;
+    }
+
+    // ---------------------------------------------------------------- routing
+
+    /** "/request staff" - the only valid form. */
+    private void handleRequest(Player player, String[] args) {
+        if (args.length >= 1 && args[0].equalsIgnoreCase("staff")) {
+            showForm(player, "Request Admin Assistance", null, null);
+        } else {
+            player.sendMessage(DialogUtil.error("Usage: /request staff"));
+        }
+    }
+
+    /** "/requests" (own requests) or "/requests view [player]" (staff). */
+    private void handleRequests(Player player, String[] args) {
+        if (args.length >= 1 && args[0].equalsIgnoreCase("view")) {
+            if (!player.hasPermission("reportadmin.staff")) {
+                player.sendMessage(DialogUtil.error("You don't have permission to view other players' admin requests."));
+                return;
+            }
+            if (args.length >= 2) {
+                String typed = args[1];
+                AdminRequest request = requestManager.getOpenByPlayerName(typed);
+                if (request == null) {
+                    player.sendMessage(DialogUtil.info(typed + " has no open admin request."));
+                } else {
+                    openStaffDetail(player, request);
+                }
+            } else {
+                openStaffList(player);
+            }
+        } else {
+            openOwnList(player);
+        }
     }
 
     // ---------------------------------------------------------------- create / edit form
