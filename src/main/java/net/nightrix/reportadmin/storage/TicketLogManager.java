@@ -53,6 +53,18 @@ public class TicketLogManager {
                 .collect(Collectors.toList());
     }
 
+    /** Same as {@link #getRecent()} but filtered to entries touching one player - either as the
+     *  submitter, or (for report-type entries) as the reported target. Backs
+     *  "/report logs &lt;player&gt;". */
+    public synchronized List<TicketLog> getRecentByPlayer(String playerName) {
+        return logs.stream()
+                .filter(l -> l.getSubmitterName().equalsIgnoreCase(playerName)
+                        || (l.getType() == TicketLog.Type.REPORT && playerName.equalsIgnoreCase(l.getTargetName())))
+                .sorted(Comparator.comparingLong(TicketLog::getClosedAt).reversed())
+                .limit(MAX_DISPLAYED)
+                .collect(Collectors.toList());
+    }
+
     public synchronized TicketLog getById(int id) {
         for (TicketLog log : logs) {
             if (log.getId() == id) {
