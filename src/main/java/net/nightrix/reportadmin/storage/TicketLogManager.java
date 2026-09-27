@@ -1,6 +1,8 @@
 package net.nightrix.reportadmin.storage;
 
 import net.nightrix.reportadmin.model.TicketLog;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -10,6 +12,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -35,11 +38,11 @@ public class TicketLogManager {
         load();
     }
 
-    public synchronized TicketLog add(TicketLog.Type type, int originalId, String submitterName, String targetName,
-                                       String reason, String evidence, String finalStatus, String closedByName,
-                                       long createdAt) {
-        TicketLog log = new TicketLog(nextId++, type, originalId, submitterName, targetName, reason, evidence,
-                finalStatus, closedByName, createdAt, System.currentTimeMillis());
+    public synchronized TicketLog add(TicketLog.Type type, int originalId, UUID submitterId, String submitterName,
+                                       String targetName, String reason, String evidence, String finalStatus,
+                                       String closedByName, long createdAt) {
+        TicketLog log = new TicketLog(nextId++, type, originalId, submitterId, submitterName, targetName, reason,
+                evidence, finalStatus, closedByName, createdAt, System.currentTimeMillis());
         logs.add(log);
         save();
         return log;
@@ -74,6 +77,17 @@ public class TicketLogManager {
         return null;
     }
 
+    /** Permanently removes a log entry - used both by "Delete Permanently" and by "Reopen"
+     *  (which recreates the active report/request elsewhere first). Irreversible. */
+    public synchronized boolean remove(int id) {
+        boolean removed = logs.removeIf(l -> l.getId() == id);
+        if (removed) {
+            save();
+        }
+        return removed;
+    }
+
+    @SuppressWarnings("deprecation")
     private void load() {
         if (!file.exists()) {
             return;
@@ -93,6 +107,16 @@ public class TicketLogManager {
                 TicketLog.Type type = TicketLog.Type.valueOf(s.getString("type"));
                 int originalId = s.getInt("originalId");
                 String submitterName = s.getString("submitterName", "Unknown");
+                UUID submitterId;
+                String submitterIdRaw = s.getString("submitterId", null);
+                if (submitterIdRaw != null) {
+                    submitterId = UUID.fromString(submitterIdRaw);
+                } else {
+                    // Entries logged before "submitterId" existed - best-effort lookup so reopening
+                    // still works for them.
+                    OfflinePlayer offline = Bukkit.getOfflinePlayer(submitterName);
+                    submitterId = offline.getUniqueId();
+                }
                 String targetName = s.getString("targetName", null);
                 String reason = s.getString("reason", "");
                 String evidence = s.getString("evidence", null);
@@ -100,7 +124,7 @@ public class TicketLogManager {
                 String closedByName = s.getString("closedByName", "Unknown");
                 long createdAt = s.getLong("createdAt", System.currentTimeMillis());
                 long closedAt = s.getLong("closedAt", System.currentTimeMillis());
-                TicketLog log = new TicketLog(id, type, originalId, submitterName, targetName, reason,
+                TicketLog log = new TicketLog(id, type, originalId, submitterId, submitterName, targetName, reason,
                         evidence, finalStatus, closedByName, createdAt, closedAt);
                 logs.add(log);
                 nextId = Math.max(nextId, id + 1);
@@ -116,6 +140,7 @@ public class TicketLogManager {
             String path = "logs." + log.getId();
             yaml.set(path + ".type", log.getType().name());
             yaml.set(path + ".originalId", log.getOriginalId());
+            yaml.set(path + ".submitterId", log.getSubmitterId() == null ? null : log.getSubmitterId().toString());
             yaml.set(path + ".submitterName", log.getSubmitterName());
             yaml.set(path + ".targetName", log.getTargetName());
             yaml.set(path + ".reason", log.getReason());
