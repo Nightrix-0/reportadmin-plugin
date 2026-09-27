@@ -26,7 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Handles /request (staff) and /requests ([player] | view [player]).
+ * Handles /request (staff, or bare for a menu) and /requests ([player] | view [player]).
  *
  * "/requests view" (no player) only ever lists OPEN requests whose author is currently online,
  * per spec. "/requests view &lt;player&gt;" jumps straight to that online player's open request.
@@ -60,13 +60,17 @@ public class AdminRequestCommands implements CommandExecutor {
 
     // ---------------------------------------------------------------- routing
 
-    /** "/request staff" - the only valid form. */
+    /** "/request staff", or bare "/request" - shows every command you can run next. */
     private void handleRequest(Player player, String[] args) {
         if (args.length >= 1 && args[0].equalsIgnoreCase("staff")) {
             showForm(player, "Request Admin Assistance", null, null);
-        } else {
-            player.sendMessage(DialogUtil.error("Usage: /request staff"));
+            return;
         }
+        if (args.length == 0) {
+            openRequestMenu(player);
+            return;
+        }
+        player.sendMessage(DialogUtil.error("Usage: /request staff"));
     }
 
     /** "/requests" (menu), "/requests &lt;anything else&gt;" (own requests), or
@@ -92,17 +96,26 @@ public class AdminRequestCommands implements CommandExecutor {
         }
 
         if (args.length == 0) {
-            openRequestsMenu(player);
+            openRequestMenu(player);
             return;
         }
 
         openOwnList(player);
     }
 
-    /** Bare "/requests" - shows what you can do next instead of jumping straight into a list. */
-    private void openRequestsMenu(Player player) {
+    /** Bare "/request" or "/requests" - shows every command you can run next: sending a
+     *  request, your own requests, and (staff) every open request from online players. */
+    private void openRequestMenu(Player player) {
         List<ActionButton> buttons = new ArrayList<>();
-        buttons.add(ActionButton.builder(Component.text("My Admin Requests", NamedTextColor.YELLOW))
+        buttons.add(ActionButton.builder(Component.text("Request Staff Assistance", NamedTextColor.YELLOW))
+                .tooltip(Component.text("/request staff - send a request to online staff."))
+                .action(DialogAction.customClick((view, audience) -> {
+                    if (audience instanceof Player p) {
+                        showForm(p, "Request Admin Assistance", null, null);
+                    }
+                }, DialogUtil.singleUse()))
+                .build());
+        buttons.add(ActionButton.builder(Component.text("My Admin Requests", NamedTextColor.AQUA))
                 .tooltip(Component.text("/requests - view and manage the requests you've sent."))
                 .action(DialogAction.customClick((view, audience) -> {
                     if (audience instanceof Player p) {
@@ -111,7 +124,7 @@ public class AdminRequestCommands implements CommandExecutor {
                 }, DialogUtil.singleUse()))
                 .build());
         if (player.hasPermission("reportadmin.staff")) {
-            buttons.add(ActionButton.builder(Component.text("View All Requests", NamedTextColor.AQUA))
+            buttons.add(ActionButton.builder(Component.text("View All Requests", NamedTextColor.GOLD))
                     .tooltip(Component.text("/requests view [player] - open requests from online players."))
                     .action(DialogAction.customClick((view, audience) -> {
                         if (audience instanceof Player p) {
@@ -124,7 +137,7 @@ public class AdminRequestCommands implements CommandExecutor {
         ActionButton close = ActionButton.builder(Component.text("Close")).action(null).build();
 
         Dialog dialog = Dialog.create(builder -> builder.empty()
-                .base(DialogBase.builder(Component.text("Requests Commands"))
+                .base(DialogBase.builder(Component.text("Request Commands"))
                         .body(List.of(DialogBody.plainMessage(
                                 Component.text("Choose what you'd like to do.", NamedTextColor.GRAY))))
                         .build())
