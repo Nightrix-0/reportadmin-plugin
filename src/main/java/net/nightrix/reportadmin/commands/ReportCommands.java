@@ -105,7 +105,8 @@ public class ReportCommands implements CommandExecutor {
         openReportMenu(player);
     }
 
-    /** Bare "/report" - shows what you can do next instead of jumping straight into the picker. */
+    /** Bare "/report" - shows every command you can run next instead of jumping straight into
+     *  the picker: reporting, your own reports, and (staff) the logs and every report on file. */
     private void openReportMenu(Player player) {
         List<ActionButton> buttons = new ArrayList<>();
         buttons.add(ActionButton.builder(Component.text("Report a Player", NamedTextColor.YELLOW))
@@ -116,12 +117,31 @@ public class ReportCommands implements CommandExecutor {
                     }
                 }, DialogUtil.singleUse()))
                 .build());
+        buttons.add(ActionButton.builder(Component.text("My Reports", NamedTextColor.AQUA))
+                .tooltip(Component.text("/reports [player] - view and manage the reports you've filed."))
+                .action(DialogAction.customClick((view, audience) -> {
+                    if (audience instanceof Player p) {
+                        openList(p, "My Reports", () -> reportManager.getByReporter(p.getUniqueId()), true,
+                                "You have not filed any reports.");
+                    }
+                }, DialogUtil.singleUse()))
+                .build());
         if (player.hasPermission("reportadmin.logs")) {
-            buttons.add(ActionButton.builder(Component.text("View Report Logs", NamedTextColor.AQUA))
+            buttons.add(ActionButton.builder(Component.text("View Report Logs", NamedTextColor.GOLD))
                     .tooltip(Component.text("/report logs [player] - browse the closed-ticket archive."))
                     .action(DialogAction.customClick((view, audience) -> {
                         if (audience instanceof Player p) {
                             openLogsList(p, null);
+                        }
+                    }, DialogUtil.singleUse()))
+                    .build());
+        }
+        if (player.hasPermission("reportadmin.staff")) {
+            buttons.add(ActionButton.builder(Component.text("View All Reports", NamedTextColor.LIGHT_PURPLE))
+                    .tooltip(Component.text("/reports view [player] - every report on file (staff)."))
+                    .action(DialogAction.customClick((view, audience) -> {
+                        if (audience instanceof Player p) {
+                            openList(p, "All Reports", reportManager::getAll, false, "There are no reports on file.");
                         }
                     }, DialogUtil.singleUse()))
                     .build());
